@@ -91,30 +91,39 @@ static uint32_t pin_base_nr[16] = {
 
 static gpio_irq_handler irq_handler;
 
+extern int gpio_check_handler(uint32_t id, gpio_irq_event event);
 static void handle_interrupt_in(uint32_t irq_index, uint32_t max_num_pin_line)
 {
     gpio_channel_t *gpio_channel = &channels[irq_index];
     uint32_t gpio_idx;
-
+    
     for (gpio_idx = 0; gpio_idx < max_num_pin_line; gpio_idx++) {
         uint32_t current_mask = (1 << gpio_idx);
-
+	
         if (gpio_channel->pin_mask & current_mask) {
             // Retrieve the gpio and pin that generate the irq
             GPIO_TypeDef *gpio = (GPIO_TypeDef *)(gpio_channel->channel_gpio[gpio_idx]);
             uint32_t pin = (uint32_t)(1 << (gpio_channel->channel_pin[gpio_idx]));
-
+	    
             // Clear interrupt flag
             if (__HAL_GPIO_EXTI_GET_FLAG(pin) != RESET) {
                 __HAL_GPIO_EXTI_CLEAR_FLAG(pin);
-
+		
                 if (gpio_channel->channel_ids[gpio_idx] == 0) continue;
-
+		
                 // Check which edge has generated the irq
                 if ((gpio->IDR & pin) == 0) {
-                    irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL);
+		    // betzw: check presence of IRQ handler
+		    //        this is necessary for edge-sensitive IRQs
+                    //        or in case of potential spurious IRQs caused by rare HW glitches
+		    if(gpio_check_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL))
+			irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_FALL);
                 } else  {
-                    irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE);
+		    // betzw: check presence of IRQ handler
+		    //        this is necessary for edge-sensitive IRQs
+                    //        or in case of potential spurious IRQs caused by rare HW glitches
+		    if(gpio_check_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE))
+			irq_handler(gpio_channel->channel_ids[gpio_idx], IRQ_RISE);
                 }
             }
         }
