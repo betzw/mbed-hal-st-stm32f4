@@ -36,6 +36,9 @@
 #include "PinNames.h"
 #include "target_config.h"
 
+// betzw
+#include "dma_api.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -78,7 +81,16 @@ struct spi_s {
     PinName pin_miso;
     PinName pin_mosi;
     PinName pin_sclk;
-    PinName pin_ssel;
+    uint32_t event;
+    uint8_t module;
+    uint8_t transfer_type;
+};
+
+struct i2s_s {
+    PinName pin_data;
+    PinName pin_sclk;
+    PinName pin_wsel;
+    PinName pin_fdpx;
     uint32_t event;
     uint8_t module;
     uint8_t transfer_type;
@@ -100,6 +112,20 @@ struct pwmout_s {
 
 struct sleep_s {
     TIM_HandleTypeDef TimMasterHandle;
+};
+
+struct dma_stream_s {
+	DMA_Stream_TypeDef *dma_stream;
+	IRQn_Type dma_stream_irq;
+	uint32_t  channel_nr;
+	uint32_t  channel_nr_fd;
+	uint8_t busy;
+};
+
+struct dma_s {
+    uint8_t dma_device;                                /**< DMA device */
+    uint8_t dma_direction;                             /**< Primary DMA direction */
+    const struct dma_stream_s *dma[NUM_OF_DIRECTIONS]; /**< Tx/Rx DMA devices */ // NOTE: do NOT touch contents!
 };
 
 #include "gpio_object.h"
