@@ -69,5 +69,6 @@ extern const PinMap PinMap_I2S_DATA[];
 extern const PinMap PinMap_I2S_FDPX[];
 extern const PinMap PinMap_I2S_SCLK[];
 extern const PinMap PinMap_I2S_WSEL[];
+extern const PinMap PinMap_I2S_MCLK[];
 
 #endif

@@ -91,6 +91,7 @@ struct i2s_s {
     PinName pin_sclk;
     PinName pin_wsel;
     PinName pin_fdpx;
+    PinName pin_mclk;
     uint32_t event;
     uint8_t module;
     uint8_t transfer_type;

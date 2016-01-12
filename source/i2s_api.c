@@ -15,7 +15,7 @@
 #include "PeripheralPins.h"
 #include "target_config.h"
 
-#define DEBUG_STDIO 1 // betzw - TODO: temporarily enable debug printfs
+// #define DEBUG_STDIO 1 // betzw - TODO: temporarily enable debug printfs
 
 #ifndef DEBUG_STDIO
 #   define DEBUG_STDIO 0
@@ -230,7 +230,7 @@ static void dma_i2s_free(i2s_t *obj, uint8_t direction) {
      obj->dma.dma[direction] = NULL;
 }
 
-void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx, i2s_mode_t mode)
+void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx, PinName mclk, i2s_mode_t mode)
 {
      uint8_t dma_dev = 0, dma_direction = 0;
 
@@ -241,10 +241,13 @@ void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx
      SPIName i2s_wsel = (SPIName)pinmap_peripheral(wsel, PinMap_I2S_WSEL);
      SPIName i2s_fdpx = (SPIName)pinmap_peripheral(fdpx, PinMap_I2S_FDPX);
 
+     SPIName i2s_mclk = (SPIName)pinmap_peripheral(mclk, PinMap_I2S_MCLK);
+
      SPIName i2s_merge1 = (SPIName)pinmap_merge(i2s_data, i2s_sclk);
      SPIName i2s_merge2 = (SPIName)pinmap_merge(i2s_wsel, i2s_fdpx);
 
-     SPIName instance = (SPIName)pinmap_merge(i2s_merge1, i2s_merge2);
+     SPIName i2s_merge3 = (SPIName)pinmap_merge(i2s_merge1, i2s_merge2);
+     SPIName instance   = (SPIName)pinmap_merge(i2s_merge3, i2s_mclk);
      MBED_ASSERT(instance != (SPIName)NC);
 
      // Enable I2S/SPI clock and set the right module number
@@ -297,20 +300,31 @@ void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx
      pinmap_pinout(wsel, PinMap_I2S_WSEL);
      pinmap_pinout(sclk, PinMap_I2S_SCLK);
      pinmap_pinout(fdpx, PinMap_I2S_FDPX);
+     pinmap_pinout(mclk, PinMap_I2S_MCLK);
 
      obj->i2s.pin_wsel = wsel;
      obj->i2s.pin_data = data;
      obj->i2s.pin_sclk = sclk;
      obj->i2s.pin_fdpx = fdpx;
+     obj->i2s.pin_mclk = mclk;
 
      /* Configure PLLI2S */
      static bool first_time = true;
      if(first_time) {
     	 RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
+
+    	 /* Get RTCClockSelection */
+    	 HAL_RCCEx_GetPeriphCLKConfig(&PeriphClkInitStruct);
+
+    	 /* Set default configuration */
     	 PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
     	 PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
     	 PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
+#ifdef NDEBUG
+    	 HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+#else
     	 HAL_StatusTypeDef ret = HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+#endif
     	 MBED_ASSERT(ret == HAL_OK);
     	 first_time = false;
      }
@@ -322,12 +336,11 @@ void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx
      handle->Init.Mode              = i2s_get_mode(mode, &dma_direction);
      handle->Init.Standard          = I2S_STANDARD_PCM_SHORT;
      handle->Init.DataFormat        = I2S_DATAFORMAT_16B;
-     handle->Init.MCLKOutput        = I2S_MCLKOUTPUT_DISABLE;
+     handle->Init.MCLKOutput        = (mclk == NC) ? I2S_MCLKOUTPUT_DISABLE : I2S_MCLKOUTPUT_ENABLE;
      handle->Init.AudioFreq         = I2S_AUDIOFREQ_44K;
      handle->Init.CPOL              = I2S_CPOL_LOW;
      handle->Init.ClockSource       = I2S_CLOCK_PLL;
-     handle->Init.FullDuplexMode    = (fdpx == NC) ? 
-	  I2S_FULLDUPLEXMODE_DISABLE : I2S_FULLDUPLEXMODE_ENABLE;
+     handle->Init.FullDuplexMode    = (fdpx == NC) ? I2S_FULLDUPLEXMODE_DISABLE : I2S_FULLDUPLEXMODE_ENABLE;
 
      // Save primary DMA direction
      obj->dma.dma_direction = dma_direction;
@@ -388,6 +401,7 @@ void i2s_free(i2s_t *obj)
      pin_function(obj->i2s.pin_data, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
      pin_function(obj->i2s.pin_sclk, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
      pin_function(obj->i2s.pin_fdpx, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
+     pin_function(obj->i2s.pin_mclk, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
 
      DEBUG_PRINTF("I2S%u: Free\n", obj->i2s.module+1);
 }
