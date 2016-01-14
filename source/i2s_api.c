@@ -517,11 +517,13 @@ static void i2s_master_start_asynch_transfer(i2s_t *obj, transfer_type_t transfe
      case I2S_DATAFORMAT_16B:
      case I2S_DATAFORMAT_16B_EXTENDED:
 	  words = length / 2;
+	  if(words > 0xFFFC) words = 0xFFFC; // truncate in order to respect max DMA length
 	  break;
      case I2S_DATAFORMAT_24B:
      case I2S_DATAFORMAT_32B:
      default:
 	  words = length / 4;
+	  if(words > 0x7FFC) words = 0x7FFC; // truncate in order to respect max DMA length
 	  break;
      }
 
