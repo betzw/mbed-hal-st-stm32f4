@@ -505,7 +505,7 @@ uint8_t i2s_get_module(i2s_t *obj)
      return obj->i2s.module;
 }
 
-static void i2s_master_start_asynch_transfer(i2s_t *obj, transfer_type_t transfer_type, 
+static void i2s_start_asynch_transfer(i2s_t *obj, transfer_type_t transfer_type,
 					     void *tx, void *rx, size_t length)
 {
      I2S_HandleTypeDef *handle = &I2sHandle[obj->i2s.module];
@@ -559,7 +559,7 @@ static void i2s_master_start_asynch_transfer(i2s_t *obj, transfer_type_t transfe
 }
 
 // asynchronous API
-void i2s_master_transfer(i2s_t *obj,
+void i2s_transfer(i2s_t *obj,
 			 void *tx, size_t tx_length,
 			 void *rx, size_t rx_length,
 			 bool circular,
@@ -602,17 +602,16 @@ void i2s_master_transfer(i2s_t *obj,
      // enable the right hal transfer
      if (use_tx && use_rx) {
       size_t size = (tx_length < rx_length)? tx_length : rx_length;
-	  i2s_master_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TXRX, tx, rx, size);
+	  i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TXRX, tx, rx, size);
      } else if (use_tx) {
-	  i2s_master_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TX, tx, NULL, tx_length);
+	  i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TX, tx, NULL, tx_length);
      } else if (use_rx) {
-	  i2s_master_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_RX, NULL, rx, rx_length);
+	  i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_RX, NULL, rx, rx_length);
      }
 }
 
 uint32_t i2s_irq_handler_asynch(i2s_t *obj, uint8_t direction)
 {
-     // betzw - TODO
      direction = (direction == I2S_TX_EVENT) ? DMA_TX : DMA_RX;
 
      // use the right instance
@@ -679,7 +678,7 @@ uint32_t i2s_irq_handler_asynch(i2s_t *obj, uint8_t direction)
 			 }
 
 			 if (error & HAL_I2S_ERROR_UDR) {
-				 // buffer overrun
+				 // buffer underrun
 				 event |= I2S_EVENT_TX_UNDERRUN;
 			 }
 
@@ -706,6 +705,7 @@ uint32_t i2s_irq_handler_asynch(i2s_t *obj, uint8_t direction)
 				 }
 				 break;
 			 default:
+				 printf("betzw(%s, %d): dma_state=0x%x\r\n", __func__, __LINE__, (int)dma_state);
 				 MBED_ASSERT(0);
 				 break;
 			 }
@@ -716,14 +716,14 @@ uint32_t i2s_irq_handler_asynch(i2s_t *obj, uint8_t direction)
 	       if (obj->tx_buff.pos < obj->tx_buff.length) {
 		    // DEBUG_PRINTF("t%u ", obj->tx_buff.pos);
 		    // we need to transfer more data
-		    i2s_master_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TX,
+		    i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TX,
 						     obj->tx_buff.buffer + obj->tx_buff.pos,     // offset the initial buffer by the position
 						     NULL,                                       // there is no receive buffer
 						     obj->tx_buff.length - obj->tx_buff.pos);    // transfer the remaining bytes only
 	       } else if (obj->rx_buff.pos < obj->rx_buff.length) {
 		    // DEBUG_PRINTF("r%u ", obj->rx_buff.pos);
 		    // we need to receive more data
-		    i2s_master_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_RX,
+		    i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_RX,
 						     NULL,                                       // there is no transmit buffer
 						     obj->rx_buff.buffer + obj->rx_buff.pos,     // offset the initial buffer by the position
 						     obj->rx_buff.length - obj->rx_buff.pos);    // transfer one byte at a time, until we received everything
@@ -794,6 +794,8 @@ void i2s_abort_asynch(i2s_t *obj)
      HAL_I2S_DeInit(i2s_handle);
      HAL_I2S_Init(i2s_handle);
      __HAL_I2S_ENABLE(i2s_handle);
+
+     // betzw - TODO: other cleanup e.g. ISR vector, IRQ disabling, etc.
 }
 
 #endif
