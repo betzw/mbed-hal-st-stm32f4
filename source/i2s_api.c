@@ -120,7 +120,20 @@ static inline uint32_t i2s_get_mode(i2s_mode_t mode, uint8_t *direction) {
      }
 }
 
-static void dma_i2s_init(i2s_t *obj, bool *use_tx, bool *use_rx, bool circular) {
+static inline uint32_t i2s_get_priority(i2s_dma_prio_t priority) {
+	switch(priority) {
+	case LOW:
+		return DMA_PRIORITY_LOW;
+	case URGENT:
+		return DMA_PRIORITY_VERY_HIGH;
+	case HIGH:
+		return DMA_PRIORITY_HIGH;
+	default:
+		return DMA_PRIORITY_MEDIUM;
+	}
+}
+
+static void dma_i2s_init(i2s_t *obj, bool *use_tx, bool *use_rx, bool circular, i2s_dma_prio_t prio) {
      // DMA declarations
      DMA_HandleTypeDef *primary_handle = &DMaHandles[obj->i2s.module][obj->dma.dma_direction];
      DMA_HandleTypeDef *secondary_handle = NULL;
@@ -160,7 +173,7 @@ static void dma_i2s_init(i2s_t *obj, bool *use_tx, bool *use_rx, bool circular) 
 	  primary_handle->Init.PeriphBurst = DMA_PBURST_SINGLE;
 	  primary_handle->Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
 	  primary_handle->Init.PeriphInc = DMA_PINC_DISABLE;
-	  primary_handle->Init.Priority = DMA_PRIORITY_MEDIUM;
+	  primary_handle->Init.Priority = i2s_get_priority(prio);
      }
 
      // Allocate secondary DMA channel (if full-duplex)
@@ -201,7 +214,7 @@ static void dma_i2s_init(i2s_t *obj, bool *use_tx, bool *use_rx, bool circular) 
 	  secondary_handle->Init.PeriphBurst = DMA_PBURST_SINGLE;
 	  secondary_handle->Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
 	  secondary_handle->Init.PeriphInc = DMA_PINC_DISABLE;
-	  secondary_handle->Init.Priority = DMA_PRIORITY_MEDIUM;
+	  secondary_handle->Init.Priority = i2s_get_priority(prio);
      }
 
      if(obj->dma.dma[DMA_TX] == NULL) *use_tx = false;
@@ -562,7 +575,7 @@ static void i2s_start_asynch_transfer(i2s_t *obj, transfer_type_t transfer_type,
 void i2s_transfer(i2s_t *obj,
 			 void *tx, size_t tx_length,
 			 void *rx, size_t rx_length,
-			 bool circular,
+			 bool circular, i2s_dma_prio_t prio,
 			 uint32_t handler_tx, uint32_t handler_rx, uint32_t event)
 {
      // check which use-case we have
@@ -570,7 +583,7 @@ void i2s_transfer(i2s_t *obj,
      bool use_rx = (rx != NULL && rx_length > 0);
 
      // Init DMAs
-     dma_i2s_init(obj, &use_tx, &use_rx, circular);
+     dma_i2s_init(obj, &use_tx, &use_rx, circular, prio);
 
      // don't do anything, if the buffers aren't valid
      if (!use_tx && !use_rx)
