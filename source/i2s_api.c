@@ -331,8 +331,8 @@ void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx
 
     	 /* Set default configuration */
     	 PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2S;
-    	 PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
-    	 PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
+    	 PeriphClkInitStruct.PLLI2S.PLLI2SN = 271; // betzw: use values which are suggested in Table 90. of the
+    	 PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;   //        reference manual for master clock enabled & 44100Hz
 #ifdef NDEBUG
     	 HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
 #else
@@ -349,7 +349,7 @@ void i2s_init(i2s_t *obj, PinName data, PinName sclk, PinName wsel, PinName fdpx
      handle->Init.Mode              = i2s_get_mode(mode, &dma_direction);
      handle->Init.Standard          = I2S_STANDARD_PCM_SHORT;
      handle->Init.DataFormat        = I2S_DATAFORMAT_16B;
-     handle->Init.MCLKOutput        = (mclk == NC) ? I2S_MCLKOUTPUT_DISABLE : I2S_MCLKOUTPUT_ENABLE;
+     handle->Init.MCLKOutput        = I2S_MCLKOUTPUT_ENABLE; // betzw: always enable master clock to avoid frequency dis-alignment between I2S devices
      handle->Init.AudioFreq         = I2S_AUDIOFREQ_44K;
      handle->Init.CPOL              = I2S_CPOL_LOW;
      handle->Init.ClockSource       = I2S_CLOCK_PLL;
