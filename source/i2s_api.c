@@ -235,7 +235,7 @@ static void dma_i2s_free(i2s_t *obj, uint8_t direction) {
 
      MBED_ASSERT(stream != NULL);
 
-     // betzw - TODO / TO_COMPLETE
+     // disable irq
      vIRQ_DisableIRQ(stream->dma_stream_irq);
 
      // free channel
@@ -408,6 +408,7 @@ void i2s_free(i2s_t *obj)
      }
 
      // betzw - TODO: what about 'PLLI2S'?!?
+     //               for the moment we leave it enabled!
 
      // Configure GPIOs
      pin_function(obj->i2s.pin_wsel, STM_PIN_DATA(STM_MODE_INPUT, GPIO_NOPULL, 0));
@@ -724,28 +725,6 @@ uint32_t i2s_irq_handler_asynch(i2s_t *obj, uint8_t direction)
 			 }
 		 }
 	 }
-#if 0 // betzw
-	       // figure out if we need to transfer more data:
-	       if (obj->tx_buff.pos < obj->tx_buff.length) {
-		    // DEBUG_PRINTF("t%u ", obj->tx_buff.pos);
-		    // we need to transfer more data
-		    i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_TX,
-						     obj->tx_buff.buffer + obj->tx_buff.pos,     // offset the initial buffer by the position
-						     NULL,                                       // there is no receive buffer
-						     obj->tx_buff.length - obj->tx_buff.pos);    // transfer the remaining bytes only
-	       } else if (obj->rx_buff.pos < obj->rx_buff.length) {
-		    // DEBUG_PRINTF("r%u ", obj->rx_buff.pos);
-		    // we need to receive more data
-		    i2s_start_asynch_transfer(obj, I2S_TRANSFER_TYPE_RX,
-						     NULL,                                       // there is no transmit buffer
-						     obj->rx_buff.buffer + obj->rx_buff.pos,     // offset the initial buffer by the position
-						     obj->rx_buff.length - obj->rx_buff.pos);    // transfer one byte at a time, until we received everything
-	       } else {
-		    // everything is ok, nothing else needs to be transferred
-		    event = I2S_EVENT_COMPLETE | I2S_EVENT_INTERNAL_TRANSFER_COMPLETE;
-		    DEBUG_PRINTF("I2S%u: Done: %u, %u\n", obj->i2s.module+1, obj->tx_buff.pos, obj->rx_buff.pos);
-	       }
-#endif // 0
 	 break;
 
 	 default:
@@ -777,6 +756,9 @@ void i2s_abort_asynch(i2s_t *obj)
 {
      I2S_HandleTypeDef *i2s_handle = &I2sHandle[obj->i2s.module];
 
+     // Stop transfer
+     HAL_I2S_DMAStop(i2s_handle);
+
      if(obj->dma.dma[DMA_TX] != NULL) {
 	  DMA_HandleTypeDef *dma_handle_tx = &DMaHandles[obj->i2s.module][DMA_TX];
 
@@ -807,8 +789,6 @@ void i2s_abort_asynch(i2s_t *obj)
      HAL_I2S_DeInit(i2s_handle);
      HAL_I2S_Init(i2s_handle);
      __HAL_I2S_ENABLE(i2s_handle);
-
-     // betzw - TODO: other cleanup e.g. ISR vector, IRQ disabling, etc.
 }
 
 #endif
