@@ -88,7 +88,7 @@ uint32_t lp_ticker_get_overflows_counter(void) {
 }
 
 uint32_t lp_ticker_get_compare_match(void) {
-    return TIM2->CCMR1;
+    return TIM2->CCR1;
 }
 
 void lp_ticker_set_interrupt(uint32_t now, uint32_t time) {
