@@ -28,18 +28,15 @@
 #include <stddef.h>
 #include "us_ticker_api.h"
 #include "PeripheralNames.h"
+#include "hal_tick.h"
 
-#define TIM_MST TIM5
-
-static TIM_HandleTypeDef TimMasterHandle;
+extern TIM_HandleTypeDef TimMasterHandleUsHal;
 static int us_ticker_inited = 0;
 
 void us_ticker_init(void)
 {
     if (us_ticker_inited) return;
     us_ticker_inited = 1;
-
-    TimMasterHandle.Instance = TIM_MST;
 
     HAL_InitTick(0); // The passed value is not used
 }
@@ -53,17 +50,17 @@ uint32_t us_ticker_read()
 void us_ticker_set_interrupt(timestamp_t timestamp)
 {
     // Set new output compare value
-    __HAL_TIM_SetCompare(&TimMasterHandle, TIM_CHANNEL_1, (uint32_t)timestamp);
+    __HAL_TIM_SetCompare(&TimMasterHandleUsHal, TIM_CHANNEL_1, (uint32_t)timestamp);
     // Enable IT
-    __HAL_TIM_ENABLE_IT(&TimMasterHandle, TIM_IT_CC1);
+    __HAL_TIM_ENABLE_IT(&TimMasterHandleUsHal, TIM_IT_CC1);
 }
 
 void us_ticker_disable_interrupt(void)
 {
-    __HAL_TIM_DISABLE_IT(&TimMasterHandle, TIM_IT_CC1);
+    __HAL_TIM_DISABLE_IT(&TimMasterHandleUsHal, TIM_IT_CC1);
 }
 
 void us_ticker_clear_interrupt(void)
 {
-    __HAL_TIM_CLEAR_IT(&TimMasterHandle, TIM_IT_CC1);
+    __HAL_TIM_CLEAR_IT(&TimMasterHandleUsHal, TIM_IT_CC1);
 }

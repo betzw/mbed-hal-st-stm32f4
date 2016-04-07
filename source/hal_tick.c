@@ -35,27 +35,27 @@
 #include "hal_tick.h"
 #include "uvisor-lib/override.h"
 
-TIM_HandleTypeDef TimMasterHandle;
-uint32_t PreviousVal = 0;
+TIM_HandleTypeDef TimMasterHandleUsHal;
+static uint32_t PreviousVal = 0;
 
 void us_ticker_irq_handler(void);
 
 void timer_irq_handler(void) {
     // Channel 1 for mbed timeout
-    if (__HAL_TIM_GET_ITSTATUS(&TimMasterHandle, TIM_IT_CC1) == SET) {
-        __HAL_TIM_CLEAR_IT(&TimMasterHandle, TIM_IT_CC1);
+    if (__HAL_TIM_GET_ITSTATUS(&TimMasterHandleUsHal, TIM_IT_CC1) == SET) {
+        __HAL_TIM_CLEAR_IT(&TimMasterHandleUsHal, TIM_IT_CC1);
         us_ticker_irq_handler();
     }
 
     // Channel 2 for HAL tick
-    if (__HAL_TIM_GET_ITSTATUS(&TimMasterHandle, TIM_IT_CC2) == SET) {
-        __HAL_TIM_CLEAR_IT(&TimMasterHandle, TIM_IT_CC2);
-        uint32_t val = __HAL_TIM_GetCounter(&TimMasterHandle);
+    if (__HAL_TIM_GET_ITSTATUS(&TimMasterHandleUsHal, TIM_IT_CC2) == SET) {
+        __HAL_TIM_CLEAR_IT(&TimMasterHandleUsHal, TIM_IT_CC2);
+        uint32_t val = __HAL_TIM_GetCounter(&TimMasterHandleUsHal);
         if ((val - PreviousVal) >= HAL_TICK_DELAY) {
             // Increment HAL variable
             HAL_IncTick();
             // Prepare next interrupt
-            __HAL_TIM_SetCompare(&TimMasterHandle, TIM_CHANNEL_2, val + HAL_TICK_DELAY);
+            __HAL_TIM_SetCompare(&TimMasterHandleUsHal, TIM_CHANNEL_2, val + HAL_TICK_DELAY);
             PreviousVal = val;
 #if 0 // For DEBUG only
             HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_6);
@@ -91,25 +91,25 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority) {
    }
 
     // Configure time base
-    TimMasterHandle.Instance               = TIM_MST;
-    TimMasterHandle.Init.Period            = 0xFFFFFFFF;
-    TimMasterHandle.Init.Prescaler         = (uint32_t)(PclkFreq / 1000000) - 1; // 1 us tick
-    TimMasterHandle.Init.ClockDivision     = 0;
-    TimMasterHandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    TimMasterHandle.Init.RepetitionCounter = 0;
-    HAL_TIM_OC_Init(&TimMasterHandle);
+    TimMasterHandleUsHal.Instance               = TIM_MST;
+    TimMasterHandleUsHal.Init.Period            = 0xFFFFFFFF;
+    TimMasterHandleUsHal.Init.Prescaler         = (uint32_t)(PclkFreq / 1000000) - 1; // 1 us tick
+    TimMasterHandleUsHal.Init.ClockDivision     = 0;
+    TimMasterHandleUsHal.Init.CounterMode       = TIM_COUNTERMODE_UP;
+    TimMasterHandleUsHal.Init.RepetitionCounter = 0;
+    HAL_TIM_OC_Init(&TimMasterHandleUsHal);
 
     NVIC_SetVector(TIM_MST_IRQ, (uint32_t)timer_irq_handler);
     NVIC_EnableIRQ(TIM_MST_IRQ);
 
     // Channel 1 for mbed timeout
-    HAL_TIM_OC_Start(&TimMasterHandle, TIM_CHANNEL_1);
+    HAL_TIM_OC_Start(&TimMasterHandleUsHal, TIM_CHANNEL_1);
 
     // Channel 2 for HAL tick
-    HAL_TIM_OC_Start(&TimMasterHandle, TIM_CHANNEL_2);
-    PreviousVal = __HAL_TIM_GetCounter(&TimMasterHandle);
-    __HAL_TIM_SetCompare(&TimMasterHandle, TIM_CHANNEL_2, PreviousVal + HAL_TICK_DELAY);
-    __HAL_TIM_ENABLE_IT(&TimMasterHandle, TIM_IT_CC2);
+    HAL_TIM_OC_Start(&TimMasterHandleUsHal, TIM_CHANNEL_2);
+    PreviousVal = __HAL_TIM_GetCounter(&TimMasterHandleUsHal);
+    __HAL_TIM_SetCompare(&TimMasterHandleUsHal, TIM_CHANNEL_2, PreviousVal + HAL_TICK_DELAY);
+    __HAL_TIM_ENABLE_IT(&TimMasterHandleUsHal, TIM_IT_CC2);
 
 #if 0 // For DEBUG only
     __GPIOB_CLK_ENABLE();
