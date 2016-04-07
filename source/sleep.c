@@ -28,6 +28,7 @@
  *******************************************************************************
  */
 #include "sleep_api.h"
+#include "hal_tick.h"
 
 #if DEVICE_SLEEP
 
@@ -37,7 +38,7 @@ void mbed_enter_sleep(sleep_t *obj)
 {
     // This currently goes to Sleep Mode, because lp ticker implementation is not
     // available in the STOP mode
-    obj->TimMasterHandle.Instance = TIM5;
+    obj->TimMasterHandle.Instance = TIM_MST;
 
     // Disable HAL tick interrupt
     __HAL_TIM_DISABLE_IT(&obj->TimMasterHandle, TIM_IT_CC2);
