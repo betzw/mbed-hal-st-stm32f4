@@ -39,6 +39,7 @@
 #include "cmsis.h"
 #include "pinmap.h"
 #include "PeripheralPins.h"
+#include "target_config.h"
 
 /* Timeout values for flags and events waiting loops. These timeouts are
    not based on accurate values, they just guarantee that the application will
