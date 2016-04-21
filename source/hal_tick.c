@@ -33,7 +33,7 @@
   ******************************************************************************
   */
 #include "hal_tick.h"
-#include "uvisor-lib/override.h"
+#include "uvisor-lib/uvisor-lib.h"
 
 TIM_HandleTypeDef TimMasterHandleUsHal;
 static uint32_t PreviousVal = 0;
@@ -99,8 +99,8 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority) {
     TimMasterHandleUsHal.Init.RepetitionCounter = 0;
     HAL_TIM_OC_Init(&TimMasterHandleUsHal);
 
-    NVIC_SetVector(TIM_MST_IRQ, (uint32_t)timer_irq_handler);
-    NVIC_EnableIRQ(TIM_MST_IRQ);
+    vIRQ_SetVector(TIM_MST_IRQ, (uint32_t)timer_irq_handler);
+    vIRQ_EnableIRQ(TIM_MST_IRQ);
 
     // Channel 1 for mbed timeout
     HAL_TIM_OC_Start(&TimMasterHandleUsHal, TIM_CHANNEL_1);
