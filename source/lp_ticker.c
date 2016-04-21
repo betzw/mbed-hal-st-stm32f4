@@ -73,6 +73,10 @@ void lp_ticker_init(void) {
         vIRQ_EnableIRQ(TIM2_IRQn);
 
         HAL_TIM_OC_Start(&TimMasterHandle, TIM_CHANNEL_1);
+
+#ifndef NDEBUG
+        __HAL_DBGMCU_FREEZE_TIM2();
+#endif
     }
 }
 

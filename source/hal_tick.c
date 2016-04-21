@@ -42,13 +42,13 @@ void us_ticker_irq_handler(void);
 
 void timer_irq_handler(void) {
     // Channel 1 for mbed timeout
-    if (__HAL_TIM_GET_ITSTATUS(&TimMasterHandleUsHal, TIM_IT_CC1) == SET) {
+    if (__HAL_TIM_GET_FLAG(&TimMasterHandleUsHal, TIM_IT_CC1) != RESET) {
         __HAL_TIM_CLEAR_IT(&TimMasterHandleUsHal, TIM_IT_CC1);
         us_ticker_irq_handler();
     }
 
     // Channel 2 for HAL tick
-    if (__HAL_TIM_GET_ITSTATUS(&TimMasterHandleUsHal, TIM_IT_CC2) == SET) {
+    if (__HAL_TIM_GET_FLAG(&TimMasterHandleUsHal, TIM_IT_CC2) != RESET) {
         __HAL_TIM_CLEAR_IT(&TimMasterHandleUsHal, TIM_IT_CC2);
         uint32_t val = __HAL_TIM_GetCounter(&TimMasterHandleUsHal);
         if ((val - PreviousVal) >= HAL_TICK_DELAY) {
@@ -110,6 +110,10 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority) {
     PreviousVal = __HAL_TIM_GetCounter(&TimMasterHandleUsHal);
     __HAL_TIM_SetCompare(&TimMasterHandleUsHal, TIM_CHANNEL_2, PreviousVal + HAL_TICK_DELAY);
     __HAL_TIM_ENABLE_IT(&TimMasterHandleUsHal, TIM_IT_CC2);
+
+#ifndef NDEBUG
+    TIM_MST_DBGMCU_FREEZE;
+#endif
 
 #if 0 // For DEBUG only
     __GPIOB_CLK_ENABLE();
