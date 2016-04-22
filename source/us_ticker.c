@@ -38,7 +38,7 @@ void us_ticker_init(void)
     if (us_ticker_inited) return;
     us_ticker_inited = 1;
 
-    HAL_InitTick(0); // The passed value is not used (betzw: but shoould be used, anyway should never be called, see above)
+    HAL_InitTick(0); // The passed value is not used (betzw: but should be used, anyway should never be called, see above)
 }
 
 uint32_t us_ticker_read()
