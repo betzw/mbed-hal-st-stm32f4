@@ -31,14 +31,14 @@
 #include "hal_tick.h"
 
 extern TIM_HandleTypeDef TimMasterHandleUsHal;
-static int us_ticker_inited = 0;
+static int us_ticker_inited = 1; // betzw: assume HAL ticker already initialize during bootstrap (see function 'mbed_hal_init()')!
 
 void us_ticker_init(void)
 {
     if (us_ticker_inited) return;
     us_ticker_inited = 1;
 
-    HAL_InitTick(0); // The passed value is not used
+    HAL_InitTick(0); // The passed value is not used (betzw: but shoould be used, anyway should never be called, see above)
 }
 
 uint32_t us_ticker_read()
